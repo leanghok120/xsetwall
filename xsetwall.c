@@ -3,19 +3,30 @@
 #include <Imlib2.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-int main(int argc, char **argv) {
-  if (argc < 2) {
-    printf("usage: %s path\n", argv[0]);
-    return 1;
-  }
+Display *dpy;
+Window root;
 
-  // setup xlib
-  Display *dpy = XOpenDisplay(NULL);
-  Window root = XDefaultRootWindow(dpy);
+void print_help(const char *name) {
+  printf("usage: %s [-c 0xRRGGBB | -p /path/to/image]\n", name);
+}
+
+void die(const char *msg) {
+  fprintf(stderr, "%s\n", msg); 
+  exit(1);
+}
+
+void setbgcolor(unsigned long color) {
+  XSetWindowBackground(dpy, root, color);
+  XClearWindow(dpy, root);
+}
+
+void setbgimage(const char *path) {
   int scr = DefaultScreen(dpy);
   int width = DisplayWidth(dpy, scr);
   int height = DisplayHeight(dpy, scr);
+
   Pixmap pixmap = XCreatePixmap(dpy, root, width, height, DefaultDepth(dpy, scr));
 
   // setup imlib
@@ -26,10 +37,9 @@ int main(int argc, char **argv) {
 
   // load image
   Imlib_Image image;
-  image = imlib_load_image(argv[1]);
+  image = imlib_load_image(path);
   if (image == NULL) {
-    fprintf(stderr, "failed to load image\n"); 
-    exit(1);
+    die("failed to load image");
   }
   imlib_context_set_image(image);
   imlib_render_image_on_drawable_at_size(0, 0, width, height);
@@ -37,10 +47,31 @@ int main(int argc, char **argv) {
   // set bg
   XSetWindowBackgroundPixmap(dpy, root, pixmap);
   XClearWindow(dpy, root);
-  XFlush(dpy);
 
   imlib_free_image();
   XFreePixmap(dpy, pixmap);
+}
+
+int main(int argc, char **argv) {
+  if (argc < 2) {
+    print_help(argv[0]);
+    return 1;
+  }
+
+  dpy = XOpenDisplay(NULL);
+  root = XDefaultRootWindow(dpy);
+
+  if (strcmp(argv[1], "-p") == 0) {
+    setbgimage(argv[2]);
+  } else if (strcmp(argv[1], "-c") == 0) {
+    unsigned long color = strtoul(argv[2], NULL, 0);
+    setbgcolor(color);
+  } else {
+    print_help(argv[0]);
+  }
+
+  XFlush(dpy);
+
   XCloseDisplay(dpy);
   return 0;
 }
