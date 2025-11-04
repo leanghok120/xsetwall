@@ -1,5 +1,10 @@
+CC = gcc
+LIBS = -lX11 -lImlib2
+TARGET = xsetwall
+SRC = xsetwall.c
+
 all:
-	gcc -o xsetwall xsetwall.c -lX11 -lImlib2
+	$(CC) -o $(TARGET) $(SRC) $(LIBS)
 
 install:
-	mv xsetwall /usr/local/bin
+	mv $(TARGET) /usr/local/bin
